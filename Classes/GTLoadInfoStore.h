@@ -91,6 +91,9 @@ struct LoadInfoTraitsUseArrayBase{
     typedef std::shared_ptr<TypeID_TypeInfos_Map> TypeID_TypeInfos_MapPtr;
     typedef std::array<TypeID_TypeInfos_MapPtr, GroupCount> GroupID_TypeInfosMap_Map;
     
+    static const size_t GROUP_COUNT = GroupCount;
+    static const size_t TYPE_COUNT = TypeCount;
+    
     static TypeID_TypeInfos_MapPtr makeSureFindGroup(GroupID_TypeInfosMap_Map& infos, const GroupIDType& gid);
     static void insertInfo(TypeID_TypeInfos_Map& infos, const TypeIDType& tid, InfoType&& info);
     static TypeInfoContainerPtr getInfos(const GroupID_TypeInfosMap_Map& infos, const GroupIDType& gid, const TypeIDType& tid);
@@ -111,8 +114,8 @@ struct LoadInfoTraitsUseArrayImpl : public LoadInfoTraitsUseArrayBase<GroupCount
     typedef typename LoadInfoTraitsUseArrayBase<GroupCount, TypeCount, _Info>::TypeID_TypeInfos_MapPtr TypeID_TypeInfos_MapPtr;
     typedef typename LoadInfoTraitsUseArrayBase<GroupCount, TypeCount, _Info>::GroupID_TypeInfosMap_Map GroupID_TypeInfosMap_Map;
     
-    static std::pair<std::string, GroupIDType> s_String_GroupID[GroupCount];
-    static std::pair<std::string, TypeIDType> s_String_TypeID[TypeCount];
+    static std::string s_GroupIDStrings[GroupCount];
+    static std::string s_TypeIDStrings[TypeCount];
     
     static const GroupIDType INVALID_GROUP_ID = ~0;
     static const TypeIDType INVALID_TYPE_ID = ~0;
@@ -369,19 +372,19 @@ void LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::dump(co
 #endif // GHOST_DEBUG
 
 template<size_t GroupCount, size_t TypeCount, typename _Info, size_t UniqueID>
-std::pair<std::string, typename LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::GroupIDType> LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::s_String_GroupID[GroupCount];
+std::string LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::s_GroupIDStrings[GroupCount];
 
 template<size_t GroupCount, size_t TypeCount, typename _Info, size_t UniqueID>
-std::pair<std::string, typename LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::TypeIDType> LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::s_String_TypeID[TypeCount];
+std::string LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::s_TypeIDStrings[TypeCount];
 
 template<size_t GroupCount, size_t TypeCount, typename _Info, size_t UniqueID>
 typename LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::GroupIDType LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::stringToGroupID(const char* str)
 {
-    for (const auto& string_groupID : s_String_GroupID)
+    for (size_t gid = 0; gid < GroupCount; ++gid)
     {
-        if (string_groupID.first == str)
+        if (s_GroupIDStrings[gid] == str)
         {
-            return string_groupID.second;
+            return gid;
         }
     }
     return INVALID_GROUP_ID;
@@ -390,12 +393,9 @@ typename LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::Gro
 template<size_t GroupCount, size_t TypeCount, typename _Info, size_t UniqueID>
 std::string LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::groupIDToString(GroupIDType gid)
 {
-    for (const auto& string_groupID : s_String_GroupID)
+    if (GroupCount > gid)
     {
-        if (string_groupID.second == gid)
-        {
-            return string_groupID.first;
-        }
+        return s_GroupIDStrings[gid];
     }
     return std::string();
 }
@@ -403,11 +403,11 @@ std::string LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::
 template<size_t GroupCount, size_t TypeCount, typename _Info, size_t UniqueID>
 typename LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::TypeIDType LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::stringToTypeID(const char* str)
 {
-    for (const auto& string_typeID : s_String_TypeID)
+    for (size_t tid = 0; tid < TypeCount; ++tid)
     {
-        if (string_typeID.first == str)
+        if (s_TypeIDStrings[tid] == str)
         {
-            return string_typeID.second;
+            return tid;
         }
     }
     return INVALID_TYPE_ID;
@@ -416,12 +416,9 @@ typename LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::Typ
 template<size_t GroupCount, size_t TypeCount, typename _Info, size_t UniqueID>
 std::string LoadInfoTraitsUseArrayImpl<GroupCount, TypeCount, _Info, UniqueID>::typeIDToString(TypeIDType tid)
 {
-    for (const auto& string_typeID : s_String_TypeID)
+    if (TypeCount > tid)
     {
-        if (string_typeID.second == tid)
-        {
-            return string_typeID.first;
-        }
+        return s_TypeIDStrings[tid];
     }
     return std::string();
 }

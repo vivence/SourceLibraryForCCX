@@ -44,15 +44,28 @@ bool AppDelegate::applicationDidFinishLaunching() {
     "<FrameAnimations file_name=\"frame_animations.plist\" />"
     "<Particle file_name=\"particle_.plist\"/>"
     "</Group>";
-    typedef ghost::LoadInfoTraitsUseArrayImpl<1, 7, std::map<std::string, std::string>, 0> LoadInfoTraits;
-    LoadInfoTraits::s_String_GroupID[0] = std::make_pair("Test", 0);
-    LoadInfoTraits::s_String_TypeID[0] = std::make_pair("Texture", 0);
-    LoadInfoTraits::s_String_TypeID[1] = std::make_pair("SpriteFrame", 1);
-    LoadInfoTraits::s_String_TypeID[2] = std::make_pair("BitmapFont", 2);
-    LoadInfoTraits::s_String_TypeID[3] = std::make_pair("BackgroundMusic", 3);
-    LoadInfoTraits::s_String_TypeID[4] = std::make_pair("SoundEffect", 4);
-    LoadInfoTraits::s_String_TypeID[5] = std::make_pair("FrameAnimations", 5);
-    LoadInfoTraits::s_String_TypeID[6] = std::make_pair("Particle", 6);
+    
+    const char* const GROUPS[] = {
+        "Test"
+    };
+    const char* const TYPES[] = {
+        "Texture",
+        "SpriteFrame",
+        "BitmapFont",
+        "BackgroundMusic",
+        "SoundEffect",
+        "FrameAnimations",
+        "Particle"
+    };
+    typedef ghost::LoadInfoTraitsUseArrayImpl<sizeof(GROUPS)/sizeof(GROUPS[0]), sizeof(TYPES)/sizeof(TYPES[0]), std::map<std::string, std::string>, 0> LoadInfoTraits;
+    for (size_t i = 0; i < LoadInfoTraits::GROUP_COUNT; ++i)
+    {
+        LoadInfoTraits::s_GroupIDStrings[i] = GROUPS[i];
+    }
+    for (size_t i = 0; i < LoadInfoTraits::TYPE_COUNT; ++i)
+    {
+        LoadInfoTraits::s_TypeIDStrings[i] = TYPES[i];
+    }
     
 //    typedef ghost::LoadInfoTraitsUseMap<std::string, std::string, std::map<std::string, std::string>> LoadInfoTraits;
     
