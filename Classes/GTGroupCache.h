@@ -15,13 +15,23 @@
 #include <list>
 #include <memory>
 #include <map>
+#include <array>
 #include <cassert>
 
 GHOST_NAMESPACE_BEGIN
 
-template <typename O>
-struct ObjectTraits{
-    typedef O ObjectType;
+template <typename _GroupID, typename _TypeID, typename _Object>
+struct GroupCacheTraitsUseMap{
+    typedef _GroupID GroupIDType;
+    typedef _TypeID TypeIDType;
+    typedef _Object ObjectType;
+    
+    typedef std::list<ObjectType*> ObjectContainer;
+    typedef std::shared_ptr<ObjectContainer> ObjectContainerPtr;
+    
+    typedef std::map<TypeIDType, ObjectContainerPtr> TypeID_Objects_Map;
+    typedef std::shared_ptr<TypeID_Objects_Map> TypeID_Objects_MapPtr;
+    typedef std::map<GroupIDType, TypeID_Objects_MapPtr> GroupID_ObjectsMap_Map;
     
     static void retainObject(ObjectType* pObject)
     {
@@ -32,70 +42,175 @@ struct ObjectTraits{
     {
         pObject->release();
     }
+    
+    static void releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid);
+    static void releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid);
+    static void releaseAllObjects(GroupID_ObjectsMap_Map& objects);
+    static bool insertObject(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid, ObjectType* pObject);
+    static bool groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid);
+    static bool groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid);
+
 };
 
-template <typename GID = std::string, typename TID = std::string, typename O = cocos2d::Ref, typename Traits = ObjectTraits<O> >
-class GroupCache{
-public:
-    typedef GID GroupIDType;
-    typedef TID TypeIDType;
-    typedef O ObjectType;
-    typedef Traits TraitsType;
+template <typename _Object, size_t GroupCount, size_t TypeCount>
+struct GroupCacheTraitsUseArray{
+    typedef size_t GroupIDType;
+    typedef size_t TypeIDType;
+    typedef _Object ObjectType;
     
     typedef std::list<ObjectType*> ObjectContainer;
     typedef std::shared_ptr<ObjectContainer> ObjectContainerPtr;
     
-private:
-    typedef std::map<TypeIDType, ObjectContainerPtr> TypeID_Objects_Map;
+    typedef std::array<ObjectContainerPtr, TypeCount> TypeID_Objects_Map;
     typedef std::shared_ptr<TypeID_Objects_Map> TypeID_Objects_MapPtr;
-    typedef std::map<GroupIDType, TypeID_Objects_MapPtr> GroupID_ObjectsMap_Map;
+    typedef std::array<TypeID_Objects_MapPtr, GroupCount> GroupID_ObjectsMap_Map;
+    
+    static void retainObject(ObjectType* pObject)
+    {
+        pObject->retain();
+    }
+    
+    static void releaseObject(ObjectType* pObject)
+    {
+        pObject->release();
+    }
+    
+    static void releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid);
+    static void releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid);
+    static void releaseAllObjects(GroupID_ObjectsMap_Map& objects);
+    static bool insertObject(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid, ObjectType* pObject);
+    static bool groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid);
+    static bool groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid);
+    
+};
+
+template <typename _GroupID = std::string, typename _TypeID = std::string, typename _Object = cocos2d::Ref, typename _Traits = GroupCacheTraitsUseMap<_GroupID, _TypeID, _Object> >
+class GroupCache{
+public:
+    typedef _Traits TraitsType;
+    typedef typename TraitsType::GroupIDType GroupIDType;
+    typedef typename TraitsType::TypeIDType TypeIDType;
+    typedef typename TraitsType::ObjectType ObjectType;
+    
+    typedef typename TraitsType::ObjectContainer ObjectContainer;
+    typedef typename TraitsType::ObjectContainerPtr ObjectContainerPtr;
+    
+private:
+    typedef typename TraitsType::TypeID_Objects_Map TypeID_Objects_Map;
+    typedef typename TraitsType::TypeID_Objects_MapPtr TypeID_Objects_MapPtr;
+    typedef typename TraitsType::GroupID_ObjectsMap_Map GroupID_ObjectsMap_Map;
     
     GroupID_ObjectsMap_Map objects_;
     
 public:
     GroupCache() = default;
-    ~GroupCache();
+    ~GroupCache()
+    {
+        TraitsType::releaseAllObjects(objects_);
+    }
     
     GroupCache(const GroupCache& rhs) = delete;
     GroupCache& operator =(const GroupCache& rhs) = delete;
     
 public:
-    void retainObject(const GroupIDType& gid, const TypeIDType& tid, ObjectType* pObject);
-    void releaseGroup(const GroupIDType& gid, const TypeIDType& tid);
-    void releaseGroup(const GroupIDType& gid);
-    bool groupRetained(const GroupIDType& gid, const TypeIDType& tid) const;
-    bool groupRetained(const GroupIDType& gid) const;
+    void retainObject(const GroupIDType& gid, const TypeIDType& tid, ObjectType* pObject)
+    {
+        TraitsType::insertObject(objects_, gid, tid, pObject);
+    }
+    void releaseGroup(const GroupIDType& gid, const TypeIDType& tid)
+    {
+        TraitsType::releaseGroup(objects_, gid, tid);
+    }
+    void releaseGroup(const GroupIDType& gid)
+    {
+        TraitsType::releaseGroup(objects_, gid);
+    }
+    bool groupRetained(const GroupIDType& gid, const TypeIDType& tid) const
+    {
+        return TraitsType::groupRetained(objects_, gid, tid);
+    }
+    bool groupRetained(const GroupIDType& gid) const
+    {
+        return TraitsType::groupRetained(objects_, gid);
+    }
     
 };
 
 
-//----------implement--------
+//----------GroupCacheTraitsUseMap implement--------
 
-template <typename GID, typename TID, typename O, typename Traits>
-GroupCache<GID, TID, O, Traits>::~GroupCache()
+template <typename _GroupID, typename _TypeID, typename _Object>
+void GroupCacheTraitsUseMap<_GroupID, _TypeID, _Object>::releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid)
 {
-    for (auto gPair : objects_)
+    auto gIter = objects.find(gid);
+    if (objects.end() != gIter)
+    {
+        auto tIter = (*gIter).second->find(tid);
+        if ((*gIter).second->end() != tIter)
+        {
+            for (auto pObject : *(*tIter).second)
+            {
+                releaseObject(pObject);
+            }
+            
+            // delete type
+            (*gIter).second->erase(tIter);
+        }
+        
+        if ((*gIter).second->empty())
+        {
+            // delete group
+            objects.erase(gIter);
+        }
+    }
+}
+
+template <typename _GroupID, typename _TypeID, typename _Object>
+void GroupCacheTraitsUseMap<_GroupID, _TypeID, _Object>::releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid)
+{
+    auto gIter = objects.find(gid);
+    if (objects.end() != gIter)
+    {
+        for (auto tPair : *(*gIter).second)
+        {
+            for (auto pObject : *tPair.second)
+            {
+                releaseObject(pObject);
+            }
+        }
+        
+        // delete group
+        objects.erase(gIter);
+    }
+}
+
+template <typename _GroupID, typename _TypeID, typename _Object>
+void GroupCacheTraitsUseMap<_GroupID, _TypeID, _Object>::releaseAllObjects(GroupID_ObjectsMap_Map& objects)
+{
+    for (auto gPair : objects)
     {
         for (auto tPair : *gPair.second)
         {
             for (auto pObject : *tPair.second)
             {
-                TraitsType::releaseObject(pObject);
+                releaseObject(pObject);
             }
         }
     }
+    
+    objects.clear();
 }
 
-template <typename GID, typename TID, typename O, typename Traits>
-void GroupCache<GID, TID, O, Traits>::retainObject(const GroupIDType& gid, const TypeIDType& tid, ObjectType* pObject)
+template <typename _GroupID, typename _TypeID, typename _Object>
+bool GroupCacheTraitsUseMap<_GroupID, _TypeID, _Object>::insertObject(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid, ObjectType* pObject)
 {
     assert(pObject);
     ObjectContainerPtr pContainer;
     
-    auto gIter = objects_.find(gid);
-    if (objects_.end() == gIter)
+    auto gIter = objects.find(gid);
+    if (objects.end() == gIter)
     {
-        gIter = objects_.insert(std::make_pair(gid, TypeID_Objects_MapPtr(new TypeID_Objects_Map()))).first;
+        gIter = objects.insert(std::make_pair(gid, TypeID_Objects_MapPtr(new TypeID_Objects_Map()))).first;
         pContainer.reset(new ObjectContainer());
         (*gIter).second->insert(std::make_pair(tid, pContainer));
     }
@@ -111,59 +226,15 @@ void GroupCache<GID, TID, O, Traits>::retainObject(const GroupIDType& gid, const
     
     pContainer->push_back(pObject);
     
-    TraitsType::retainObject(pObject);
+    retainObject(pObject);
+    return true;
 }
 
-template <typename GID, typename TID, typename O, typename Traits>
-void GroupCache<GID, TID, O, Traits>::releaseGroup(const GroupIDType& gid, const TypeIDType& tid)
+template <typename _GroupID, typename _TypeID, typename _Object>
+bool GroupCacheTraitsUseMap<_GroupID, _TypeID, _Object>::groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid)
 {
-    auto gIter = objects_.find(gid);
-    if (objects_.end() != gIter)
-    {
-        auto tIter = (*gIter).second->find(tid);
-        if ((*gIter).second->end() != tIter)
-        {
-            for (auto pObject : *(*tIter).second)
-            {
-                TraitsType::releaseObject(pObject);
-            }
-            
-            // delete type
-            (*gIter).second->erase(tIter);
-        }
-        
-        if ((*gIter).second->empty())
-        {
-             // delete group
-            objects_.erase(gIter);
-        }
-    }
-}
-
-template <typename GID, typename TID, typename O, typename Traits>
-void GroupCache<GID, TID, O, Traits>::releaseGroup(const GroupIDType& gid)
-{
-    auto gIter = objects_.find(gid);
-    if (objects_.end() != gIter)
-    {
-        for (auto tPair : *(*gIter).second)
-        {
-            for (auto pObject : *tPair.second)
-            {
-                TraitsType::releaseObject(pObject);
-            }
-        }
-        
-        // delete group
-        objects_.erase(gIter);
-    }
-}
-
-template <typename GID, typename TID, typename O, typename Traits>
-bool GroupCache<GID, TID, O, Traits>::groupRetained(const GroupIDType& gid, const TypeIDType& tid) const
-{
-    auto gIter = objects_.find(gid);
-    if (objects_.end() != gIter)
+    auto gIter = objects.find(gid);
+    if (objects.end() != gIter)
     {
         auto tIter = (*gIter).second->find(tid);
         return (*gIter).second->end() != tIter && !(*tIter).second->empty();
@@ -171,11 +242,177 @@ bool GroupCache<GID, TID, O, Traits>::groupRetained(const GroupIDType& gid, cons
     return false;
 }
 
-template <typename GID, typename TID, typename O, typename Traits>
-bool GroupCache<GID, TID, O, Traits>::groupRetained(const GroupIDType& gid) const
+template <typename _GroupID, typename _TypeID, typename _Object>
+bool GroupCacheTraitsUseMap<_GroupID, _TypeID, _Object>::groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid)
 {
-    auto gIter = objects_.find(gid);
-    return objects_.end() != gIter && !(*gIter).second->empty();
+    auto gIter = objects.find(gid);
+    return objects.end() != gIter && !(*gIter).second->empty();
+}
+
+//----------GroupCacheTraitsUseArray implement--------
+
+template <typename _Object, size_t GroupCount, size_t TypeCount>
+void GroupCacheTraitsUseArray<_Object, GroupCount, TypeCount>::releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid)
+{
+    try
+    {
+        auto& pTypes = objects.at(gid);
+        if (pTypes)
+        {
+            auto& pObjects = pTypes->at(tid);
+            if (pObjects)
+            {
+                for (auto pObject : *pObjects)
+                {
+                    releaseObject(pObject);
+                }
+                
+                // delete type
+                pObjects.reset();
+            }
+            
+            if (pTypes->empty())
+            {
+                // delete group
+                pTypes.reset();
+            }
+        }
+    }
+    catch (std::out_of_range&)
+    {
+        
+    }
+}
+
+template <typename _Object, size_t GroupCount, size_t TypeCount>
+void GroupCacheTraitsUseArray<_Object, GroupCount, TypeCount>::releaseGroup(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid)
+{
+    try
+    {
+        auto& pTypes = objects.at(gid);
+        if (pTypes)
+        {
+            for (auto pObjects : *pTypes)
+            {
+                if (pObjects)
+                {
+                    for (auto pObject : *pObjects)
+                    {
+                        releaseObject(pObject);
+                    }
+                }
+            }
+            
+            // delete group
+            pTypes.reset();
+        }
+    }
+    catch (std::out_of_range&)
+    {
+        
+    }
+}
+
+template <typename _Object, size_t GroupCount, size_t TypeCount>
+void GroupCacheTraitsUseArray<_Object, GroupCount, TypeCount>::releaseAllObjects(GroupID_ObjectsMap_Map& objects)
+{
+    if (!objects.empty())
+    {
+        for (auto pTypes : objects)
+        {
+            if (pTypes)
+            {
+                for (auto pObjects : *pTypes)
+                {
+                    if (pObjects)
+                    {
+                        for (auto pObject : *pObjects)
+                        {
+                            releaseObject(pObject);
+                        }
+                    }
+                }
+            }
+        }
+        GroupID_ObjectsMap_Map().swap(objects);
+    }
+}
+
+template <typename _Object, size_t GroupCount, size_t TypeCount>
+bool GroupCacheTraitsUseArray<_Object, GroupCount, TypeCount>::insertObject(GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid, ObjectType* pObject)
+{
+    assert(pObject);
+    
+    try
+    {
+        auto& pTypes = objects.at(gid);
+        if (!pTypes)
+        {
+            pTypes.reset(new TypeID_Objects_Map());
+        }
+        
+        auto& pObjects = pTypes->at(tid);
+        if (!pObjects)
+        {
+            pObjects.reset(new ObjectContainer());
+        }
+        
+        pObjects->push_back(pObject);
+        
+        retainObject(pObject);
+        return true;
+    }
+    catch (std::out_of_range&)
+    {
+        
+    }
+    return false;
+}
+
+template <typename _Object, size_t GroupCount, size_t TypeCount>
+bool GroupCacheTraitsUseArray<_Object, GroupCount, TypeCount>::groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid, const TypeIDType& tid)
+{
+    try
+    {
+        auto pTypes = objects.at(gid);
+        if (!pTypes)
+        {
+            return false;
+        }
+        
+        auto pObjects = pTypes->at(tid);
+        if (!pObjects)
+        {
+            return false;
+        }
+        
+        return !pObjects->empty();
+    }
+    catch (std::out_of_range&)
+    {
+        
+    }
+    return false;
+}
+
+template <typename _Object, size_t GroupCount, size_t TypeCount>
+bool GroupCacheTraitsUseArray<_Object, GroupCount, TypeCount>::groupRetained(const GroupID_ObjectsMap_Map& objects, const GroupIDType& gid)
+{
+    try
+    {
+        auto pTypes = objects.at(gid);
+        if (!pTypes)
+        {
+            return false;
+        }
+        
+        return !pTypes->empty();
+    }
+    catch (std::out_of_range&)
+    {
+        
+    }
+    return false;
 }
 
 GHOST_NAMESPACE_END

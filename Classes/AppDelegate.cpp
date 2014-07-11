@@ -44,7 +44,19 @@ bool AppDelegate::applicationDidFinishLaunching() {
     "<FrameAnimations file_name=\"frame_animations.plist\" />"
     "<Particle file_name=\"particle_.plist\"/>"
     "</Group>";
-    ghost::LoadInfoStore<> testLoadInfoStore(str.c_str(), str.length());
+    typedef ghost::LoadInfoTraitsUseArrayImpl<1, 7, std::map<std::string, std::string>, 0> LoadInfoTraits;
+    LoadInfoTraits::s_String_GroupID[0] = std::make_pair("Test", 0);
+    LoadInfoTraits::s_String_TypeID[0] = std::make_pair("Texture", 0);
+    LoadInfoTraits::s_String_TypeID[1] = std::make_pair("SpriteFrame", 1);
+    LoadInfoTraits::s_String_TypeID[2] = std::make_pair("BitmapFont", 2);
+    LoadInfoTraits::s_String_TypeID[3] = std::make_pair("BackgroundMusic", 3);
+    LoadInfoTraits::s_String_TypeID[4] = std::make_pair("SoundEffect", 4);
+    LoadInfoTraits::s_String_TypeID[5] = std::make_pair("FrameAnimations", 5);
+    LoadInfoTraits::s_String_TypeID[6] = std::make_pair("Particle", 6);
+    
+//    typedef ghost::LoadInfoTraitsUseMap<std::string, std::string, std::map<std::string, std::string>> LoadInfoTraits;
+    
+    ghost::LoadInfoStore<LoadInfoTraits::GroupIDType, LoadInfoTraits::TypeIDType, LoadInfoTraits> testLoadInfoStore(str.c_str(), str.length());
     auto pInfos = testLoadInfoStore.getInfos("Test", "Texture");
     if (pInfos)
     {
@@ -57,14 +69,15 @@ bool AppDelegate::applicationDidFinishLaunching() {
             }
         }
     }
-    //    ghost::GroupCache<> testGroupCache;
-    //    testGroupCache.retainObject("groupID", "typeID", nullptr);
-    //    testGroupCache.releaseGroup("groupID", "typeID");
-    //    testGroupCache.releaseGroup("groupID");
-    //    testGroupCache.groupRetained("groupID", "typeID");
-    //    testGroupCache.groupRetained("groupID");
+//    typedef ghost::GroupCacheTraitsUseArray<cocos2d::Ref, 10, 10> GroupCacheTraits;
+//    ghost::GroupCache<GroupCacheTraits::GroupIDType, GroupCacheTraits::TypeIDType, GroupCacheTraits::ObjectType, GroupCacheTraits> testGroupCache;
+//    testGroupCache.retainObject(0, 0, nullptr);
+//    testGroupCache.releaseGroup(0, 0);
+//    testGroupCache.releaseGroup(0);
+//    testGroupCache.groupRetained(0, 0);
+//    testGroupCache.groupRetained(0);
     //-------test----------<
-
+    
     return true;
 }
 
