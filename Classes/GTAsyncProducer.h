@@ -88,6 +88,7 @@ void AsyncProducer<_Producer>::produce(const ProductType& product)
 {
     std::unique_lock<std::mutex> lock(queueMutex_);
     producer_.produce(product);
+    queueDestroyed_ = false;
     queueNotEmpty_.notify_one();
 }
 
