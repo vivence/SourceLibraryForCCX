@@ -2,14 +2,15 @@
 #include "HelloWorldScene.h"
 #include "GTLoadInfoStore.h"
 #include "GTGroupCache.h"
+#include "GTFunctionConsumer.h"
+#include "GTAsyncConsumer.h"
 
 USING_NS_CC;
 
 AppDelegate::AppDelegate() {
-
 }
 
-AppDelegate::~AppDelegate() 
+AppDelegate::~AppDelegate()
 {
 }
 
@@ -89,6 +90,18 @@ bool AppDelegate::applicationDidFinishLaunching() {
 //    testGroupCache.releaseGroup(0);
 //    testGroupCache.groupRetained(0, 0);
 //    testGroupCache.groupRetained(0);
+    
+    auto pQueue = new ghost::FunctionConsumer<>::QueueType();
+    auto pQueueMutext = new std::mutex();
+    auto pQueueNotEmpty = new std::condition_variable();
+    auto pConsumer = new ghost::AsyncConsumer<ghost::FunctionConsumer<>>(*pQueue, *pQueueMutext, *pQueueNotEmpty, std::chrono::seconds(1));
+    director->getScheduler()->schedule([pQueue, pQueueMutext, pQueueNotEmpty, pConsumer](float delta){
+        delete pConsumer;
+        delete pQueueNotEmpty;
+        delete pQueueMutext;
+        delete pQueue;
+    }, this, 0, 0, 3, false, "close_async_consumer");
+    
     //-------test----------<
     
     return true;
