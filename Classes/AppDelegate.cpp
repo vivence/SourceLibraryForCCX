@@ -4,6 +4,8 @@
 #include "GTGroupCache.h"
 #include "GTFunctionConsumer.h"
 #include "GTAsyncConsumer.h"
+#include "GTFunctionProducer.h"
+#include "GTAsyncProducer.h"
 
 USING_NS_CC;
 
@@ -91,16 +93,27 @@ bool AppDelegate::applicationDidFinishLaunching() {
 //    testGroupCache.groupRetained(0, 0);
 //    testGroupCache.groupRetained(0);
     
-    auto pQueue = new ghost::FunctionConsumer<>::QueueType();
-    auto pQueueMutext = new std::mutex();
-    auto pQueueNotEmpty = new std::condition_variable();
-    auto pConsumer = new ghost::AsyncConsumer<ghost::FunctionConsumer<>>(*pQueue, *pQueueMutext, *pQueueNotEmpty, std::chrono::seconds(1));
-    director->getScheduler()->schedule([pQueue, pQueueMutext, pQueueNotEmpty, pConsumer](float delta){
+    auto pProducer = new ghost::AsyncProducer<ghost::FunctionProducer<>>();
+    
+    auto pConsumer = new ghost::AsyncConsumer<ghost::FunctionConsumer<>>(pProducer->getQueue(), pProducer->getQueueDestroyed(), pProducer->getQueueMutex(), pProducer->getQueueNotEmpty(), std::chrono::seconds(-1));
+    director->getScheduler()->schedule([this, pProducer, pConsumer](float delta){
+        Director::getInstance()->getScheduler()->unschedule("produce", this);
+        
+        // 1
+        pProducer->destroyAll();
+        // 2
         delete pConsumer;
-        delete pQueueNotEmpty;
-        delete pQueueMutext;
-        delete pQueue;
+        // 3
+        delete pProducer;
     }, this, 0, 0, 3, false, "close_async_consumer");
+    
+    director->getScheduler()->schedule([this, pProducer](float delta){
+        static int i = 0;
+        int productNumber = ++i;
+        pProducer->produce([productNumber](){
+            CCLOG("product[%d] consumed", productNumber);
+        });
+    }, this, 1, 9, 0, false, "produce");
     
     //-------test----------<
     

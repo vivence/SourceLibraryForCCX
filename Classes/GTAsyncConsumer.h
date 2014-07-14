@@ -13,7 +13,6 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <atomic>
 #include <functional>
 
 GHOST_NAMESPACE_BEGIN
@@ -28,6 +27,7 @@ public:
 private:
     ConsumerType consumer_;
     
+    bool& queueDestroyed_;
     std::mutex& queueMutex_;
     std::condition_variable& queueNotEmpty_;
     
@@ -38,15 +38,26 @@ private:
     
 public:
     template<typename _Queue, typename _Rep, typename _Period>
-    AsyncConsumer(_Queue& queue, std::mutex& queueMutex, std::condition_variable& queueNotEmpty, const std::chrono::duration<_Rep, _Period>& queueNotEmptyWaitTimeout)
+    AsyncConsumer(_Queue& queue, bool& queueDestroyed, std::mutex& queueMutex, std::condition_variable& queueNotEmpty, const std::chrono::duration<_Rep, _Period>& queueNotEmptyWaitTimeout)
     : consumer_(queue)
+    , queueDestroyed_(queueDestroyed)
     , queueMutex_(queueMutex)
     , queueNotEmpty_(queueNotEmpty)
-    , waitForQueueNotEmpty_([this, queueNotEmptyWaitTimeout](std::unique_lock<std::mutex>& lock) ->bool{
-        return std::cv_status::timeout != queueNotEmpty_.wait_for(lock, queueNotEmptyWaitTimeout);
-    })
     , exit_(false)
     {
+        if (std::chrono::duration<_Rep, _Period>::zero().count() < queueNotEmptyWaitTimeout.count())
+        {
+            waitForQueueNotEmpty_ = [this, queueNotEmptyWaitTimeout](std::unique_lock<std::mutex>& lock) ->bool{
+                return std::cv_status::timeout != queueNotEmpty_.wait_for(lock, queueNotEmptyWaitTimeout);
+            };
+        }
+        else
+        {
+            waitForQueueNotEmpty_ = [this](std::unique_lock<std::mutex>& lock) ->bool{
+                queueNotEmpty_.wait(lock);
+                return true;
+            };
+        }
         // start work
         thread_ = std::thread(std::bind(std::mem_fn(&AsyncConsumer::workProc), this));
     }
@@ -65,10 +76,12 @@ AsyncConsumer<_Consumer>::~AsyncConsumer()
 {
     try
     {
-        exit_ = true;
-        if (thread_.joinable())
+        if (!exit_.exchange(true))
         {
-            thread_.join();
+            if (thread_.joinable())
+            {
+                thread_.join();
+            }
         }
     }
     catch (...)
@@ -83,9 +96,17 @@ void AsyncConsumer<_Consumer>::workProc()
     while (!exit_)
     {
         std::unique_lock<std::mutex> lock(queueMutex_);
+        if (queueDestroyed_)
+        {
+            exit_ = true;
+            break;
+        }
         if (0 >= consumer_.consume(-1))
         {
-            waitForQueueNotEmpty_(lock);
+            if (waitForQueueNotEmpty_(lock))
+            {
+                consumer_.consume(-1);
+            }
         }
     }
 }
