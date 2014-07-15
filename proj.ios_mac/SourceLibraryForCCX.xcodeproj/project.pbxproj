@@ -260,10 +260,11 @@
 		50EF629517ECD46A001EB2F8 /* Icon-100.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-100.png"; sourceTree = "<group>"; };
 		50EF62A017ECD613001EB2F8 /* Icon-29.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-29.png"; sourceTree = "<group>"; };
 		50EF62A117ECD613001EB2F8 /* Icon-50.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-50.png"; sourceTree = "<group>"; };
-		970757821973754A006A4228 /* GTFunctionConsumer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTFunctionConsumer.h; path = ../Classes/GTFunctionConsumer.h; sourceTree = "<group>"; };
+		970757821973754A006A4228 /* GTConsumer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTConsumer.h; path = ../Classes/GTConsumer.h; sourceTree = "<group>"; };
 		97075785197385AF006A4228 /* GTAsyncConsumer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GTAsyncConsumer.h; path = ../Classes/GTAsyncConsumer.h; sourceTree = "<group>"; };
-		970757861973A19F006A4228 /* GTFunctionProducer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GTFunctionProducer.h; path = ../Classes/GTFunctionProducer.h; sourceTree = "<group>"; };
+		970757861973A19F006A4228 /* GTProducer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GTProducer.h; path = ../Classes/GTProducer.h; sourceTree = "<group>"; };
 		970757871973A2D2006A4228 /* GTAsyncProducer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GTAsyncProducer.h; path = ../Classes/GTAsyncProducer.h; sourceTree = "<group>"; };
+		970757891974C75D006A4228 /* GTAsyncTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTAsyncTask.h; path = ../Classes/GTAsyncTask.h; sourceTree = "<group>"; };
 		97FF89481963F569009EBEFB /* GTGroupCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTGroupCache.h; path = ../Classes/GTGroupCache.h; sourceTree = "<group>"; };
 		97FF89491963F569009EBEFB /* GTLoadInfoStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTLoadInfoStore.h; path = ../Classes/GTLoadInfoStore.h; sourceTree = "<group>"; };
 		97FF894A1963F569009EBEFB /* GTMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTMacros.h; path = ../Classes/GTMacros.h; sourceTree = "<group>"; };
@@ -477,10 +478,11 @@
 		970757801973736F006A4228 /* 异步 */ = {
 			isa = PBXGroup;
 			children = (
-				970757861973A19F006A4228 /* GTFunctionProducer.h */,
-				970757821973754A006A4228 /* GTFunctionConsumer.h */,
+				970757861973A19F006A4228 /* GTProducer.h */,
+				970757821973754A006A4228 /* GTConsumer.h */,
 				970757871973A2D2006A4228 /* GTAsyncProducer.h */,
 				97075785197385AF006A4228 /* GTAsyncConsumer.h */,
+				970757891974C75D006A4228 /* GTAsyncTask.h */,
 			);
 			name = "异步";
 			sourceTree = "<group>";

@@ -2,10 +2,11 @@
 #include "HelloWorldScene.h"
 #include "GTLoadInfoStore.h"
 #include "GTGroupCache.h"
-#include "GTFunctionConsumer.h"
+#include "GTConsumer.h"
 #include "GTAsyncConsumer.h"
-#include "GTFunctionProducer.h"
+#include "GTProducer.h"
 #include "GTAsyncProducer.h"
+#include "GTAsyncTask.h"
 
 USING_NS_CC;
 
@@ -93,9 +94,12 @@ bool AppDelegate::applicationDidFinishLaunching() {
 //    testGroupCache.groupRetained(0, 0);
 //    testGroupCache.groupRetained(0);
     
-    auto pProducer = new ghost::AsyncProducer<ghost::FunctionProducer<>>();
+    typedef ghost::AsyncTask::ProducerQueueTraits<> TestProducerQueueTraits;
+    typedef ghost::AsyncTask::ConsumerQueueTraits<> TestConsumerQueueTraits;
     
-    auto pConsumer = new ghost::AsyncConsumer<ghost::FunctionConsumer<>>(pProducer->getQueue(), pProducer->getQueueDestroyed(), pProducer->getQueueMutex(), pProducer->getQueueNotEmpty(), std::chrono::seconds(-1));
+    auto pProducer = new ghost::AsyncProducer<ghost::Producer<TestProducerQueueTraits::ProductType, TestProducerQueueTraits::QueueType, TestProducerQueueTraits>>();
+    
+    auto pConsumer = new ghost::AsyncConsumer<ghost::Consumer<TestConsumerQueueTraits::ProductType, TestConsumerQueueTraits::QueueType, TestConsumerQueueTraits>>(pProducer->getQueue(), pProducer->getQueueDestroyed(), pProducer->getQueueMutex(), pProducer->getQueueNotEmpty(), std::chrono::seconds(-1));
     director->getScheduler()->schedule([this, pProducer, pConsumer](float delta){
         Director::getInstance()->getScheduler()->unschedule("produce", this);
         
@@ -110,10 +114,28 @@ bool AppDelegate::applicationDidFinishLaunching() {
     director->getScheduler()->schedule([this, pProducer](float delta){
         static int i = 0;
         int productNumber = ++i;
-        pProducer->produce([productNumber](){
-            CCLOG("product[%d] consumed", productNumber);
-        });
-    }, this, 1, 9, 0, false, "produce");
+        pProducer->produce(TestProducerQueueTraits::ProductType(new ghost::AsyncTask([productNumber](){
+            
+            std::stringstream ss;
+            ss<<std::this_thread::get_id();
+            CCLOG("async task[%d] consumed in background thread[%s]", productNumber, ss.str().c_str());
+            
+            Director::getInstance()->getScheduler()->performFunctionInCocosThread([productNumber](){
+                
+                std::stringstream ss;
+                ss<<std::this_thread::get_id();
+                CCLOG("async task[%d] consumed in cocos thread[%s]", productNumber, ss.str().c_str());
+                
+            });
+            
+        }, [productNumber](){
+            
+            std::stringstream ss;
+            ss<<std::this_thread::get_id();
+            CCLOG("async task[%d] canceled in cocos thread[%s]", productNumber, ss.str().c_str());
+            
+        })));
+    }, this, 0, false, "produce");
     
     //-------test----------<
     

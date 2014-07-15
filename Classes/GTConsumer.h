@@ -1,13 +1,13 @@
 //
-//  GTFunctionConsumer.h
+//  GTConsumer.h
 //  SourceLibraryForCCX
 //
 //  Created by 李 侠懿 on 7/14/14.
 //
 //
 
-#ifndef __SourceLibraryForCCX__GTFunctionConsumer__
-#define __SourceLibraryForCCX__GTFunctionConsumer__
+#ifndef __SourceLibraryForCCX__GTConsumer__
+#define __SourceLibraryForCCX__GTConsumer__
 
 #include "GTMacros.h"
 #include <functional>
@@ -34,10 +34,15 @@ struct FunctionConsumerQueueTraits{
     {
         queue.pop();
     }
+    
+    static void consumeProduct(ProductType& product)
+    {
+        product();
+    }
 };
 
 template<typename _Product = std::function<void()>, typename _Queue = std::queue<_Product>, typename _QueueTraits = FunctionConsumerQueueTraits<_Product, _Queue> >
-class FunctionConsumer{
+class Consumer{
 public:
     typedef _QueueTraits QueueTraitsType;
     typedef typename QueueTraitsType::ProductType ProductType;
@@ -47,7 +52,7 @@ private:
     QueueType& queue_;
     
 public:
-    explicit FunctionConsumer(QueueType& queue)
+    explicit Consumer(QueueType& queue)
     : queue_(queue)
     {
         
@@ -60,7 +65,7 @@ public:
 };
 
 template<typename _Product, typename _Queue, typename _QueueTraits>
-int FunctionConsumer<_Product, _Queue, _QueueTraits>::consume(int count/* = 1*/)
+int Consumer<_Product, _Queue, _QueueTraits>::consume(int count/* = 1*/)
 {
     int consumedCount = 0;
     if (0 < count)
@@ -71,8 +76,7 @@ int FunctionConsumer<_Product, _Queue, _QueueTraits>::consume(int count/* = 1*/)
             {
                 break;
             }
-            auto& func = QueueTraitsType::getProductFromQueue(queue_);
-            func();
+            QueueTraitsType::consumeProduct(QueueTraitsType::getProductFromQueue(queue_));
             QueueTraitsType::popProductFromQueue(queue_);
             ++consumedCount;
         }
@@ -81,8 +85,7 @@ int FunctionConsumer<_Product, _Queue, _QueueTraits>::consume(int count/* = 1*/)
     {
         while (!QueueTraitsType::queueEmpty(queue_))
         {
-            auto& func = QueueTraitsType::getProductFromQueue(queue_);
-            func();
+            QueueTraitsType::consumeProduct(QueueTraitsType::getProductFromQueue(queue_));
             QueueTraitsType::popProductFromQueue(queue_);
             ++consumedCount;
         }
@@ -92,4 +95,4 @@ int FunctionConsumer<_Product, _Queue, _QueueTraits>::consume(int count/* = 1*/)
 
 GHOST_NAMESPACE_END
 
-#endif /* defined(__SourceLibraryForCCX__GTFunctionConsumer__) */
+#endif /* defined(__SourceLibraryForCCX__GTConsumer__) */

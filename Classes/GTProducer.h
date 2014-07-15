@@ -1,13 +1,13 @@
 //
-//  GTFunctionProducer.h
+//  GTProducer.h
 //  SourceLibraryForCCX
 //
 //  Created by 李 侠懿 on 7/14/14.
 //
 //
 
-#ifndef SourceLibraryForCCX_GTFunctionProducer_h
-#define SourceLibraryForCCX_GTFunctionProducer_h
+#ifndef SourceLibraryForCCX_GTProducer_h
+#define SourceLibraryForCCX_GTProducer_h
 
 #include "GTMacros.h"
 #include <functional>
@@ -16,7 +16,7 @@
 GHOST_NAMESPACE_BEGIN
 
 template<typename _Product, typename _Queue>
-struct FunctionProducerQueueTraits{
+struct ProducerQueueTraits{
     typedef _Product ProductType;
     typedef _Queue QueueType;
     
@@ -28,15 +28,15 @@ struct FunctionProducerQueueTraits{
     static void destroyAllProducts(QueueType& queue)
     {
         size_t productCount = queue.size();
-        for (size_t i = 0; i < productCount; ++productCount)
+        for (size_t i = 0; i < productCount; ++i)
         {
             queue.pop();
         }
     }
 };
 
-template<typename _Product = std::function<void()>, typename _Queue = std::queue<_Product>, typename _QueueTraits = FunctionProducerQueueTraits<_Product, _Queue> >
-class FunctionProducer{
+template<typename _Product = std::function<void()>, typename _Queue = std::queue<_Product>, typename _QueueTraits = ProducerQueueTraits<_Product, _Queue> >
+class Producer{
 public:
     typedef _QueueTraits QueueTraitsType;
     typedef typename QueueTraitsType::ProductType ProductType;
@@ -46,7 +46,7 @@ private:
     QueueType queue_;
     
 public:
-    FunctionProducer() = default;
+    Producer() = default;
     
 public:
     QueueType& getQueue()
@@ -60,13 +60,13 @@ public:
 };
 
 template<typename _Product, typename _Queue, typename _QueueTraits>
-void FunctionProducer<_Product, _Queue, _QueueTraits>::produce(const ProductType& product)
+void Producer<_Product, _Queue, _QueueTraits>::produce(const ProductType& product)
 {
     QueueTraitsType::pushProductIntoQueue(queue_, product);
 }
 
 template<typename _Product, typename _Queue, typename _QueueTraits>
-void FunctionProducer<_Product, _Queue, _QueueTraits>::destroyAll()
+void Producer<_Product, _Queue, _QueueTraits>::destroyAll()
 {
     QueueTraitsType::destroyAllProducts(queue_);
 }
