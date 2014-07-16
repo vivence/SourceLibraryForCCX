@@ -7,6 +7,7 @@
 #include "GTProducer.h"
 #include "GTAsyncProducer.h"
 #include "GTAsyncTask.h"
+#include "GTHttpClient.h"
 
 USING_NS_CC;
 
@@ -136,6 +137,21 @@ bool AppDelegate::applicationDidFinishLaunching() {
             
         })));
     }, this, 0, false, "produce");
+    
+    std::thread t1([](){
+        ghost::HttpClient::getThreadLocalInstance();
+        ghost::HttpClient::getThreadLocalInstance();
+        ghost::HttpClient::getThreadLocalInstance();
+    });
+    
+    std::thread t2([](){
+        ghost::HttpClient::getThreadLocalInstance();
+        ghost::HttpClient::getThreadLocalInstance();
+        ghost::HttpClient::getThreadLocalInstance();
+    });
+    
+    t1.join();
+    t2.join();
     
     //-------test----------<
     
