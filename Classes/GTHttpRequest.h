@@ -19,7 +19,7 @@ GHOST_NAMESPACE_BEGIN
 
 struct HttpRequest{
     typedef std::list<std::string> StringList;
-    typedef std::function<void(const HttpRequest& request, double now, double total)> ProgressCallbackFunction;
+    typedef std::function<void(const HttpRequest& request, double dowloadBytes, double dowloadTotal, double uploadBytes, double uploadTotal)> ProgressCallbackFunction;
     
     
     long transferTimeoutSeconds = 0;

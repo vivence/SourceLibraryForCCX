@@ -22,6 +22,7 @@ public:
     enum ErrorCode{
         E_OK,
         E_OPEN_FILE,
+        E_WRITE_FILE,
         E_PERFORM
     };
     
@@ -41,6 +42,8 @@ public:
     static HttpClient& getThreadLocalInstance();
     
 public:
+    ErrorCode get(const HttpRequest& request, HttpResponse& response);
+    ErrorCode post(const HttpRequest& request, HttpResponse& response, const char* pData, size_t dataSize);
     ErrorCode download(const HttpRequest& request, HttpResponse& response, const char* fileName);
     
 };

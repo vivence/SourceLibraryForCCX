@@ -19,6 +19,9 @@ struct HttpResponse{
     long code;
     std::string errorString;
     
+    std::string header;
+    std::string data; // file name(download) or content
+    
 };
 
 GHOST_NAMESPACE_END

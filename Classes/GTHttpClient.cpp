@@ -75,6 +75,11 @@ namespace {
         StreamWriter& operator =(const StreamWriter&) = delete;
         
     public:
+        OStreamType& getStream()
+        {
+            return ostream_;
+        }
+        
         bool valid() const
         {
             return ostream_;
@@ -100,14 +105,12 @@ namespace {
     typedef StreamWriter<std::stringstream> StringStreamWriter;
  
     class ProgressCallback{
-        bool download_;
         const ghost::HttpRequest& request_;
         const ghost::HttpRequest::ProgressCallbackFunction& callback_;
         
     public:
-        ProgressCallback(bool download, const ghost::HttpRequest& request, const ghost::HttpRequest::ProgressCallbackFunction& callback)
-        : download_(download)
-        , request_(request)
+        ProgressCallback(const ghost::HttpRequest& request, const ghost::HttpRequest::ProgressCallbackFunction& callback)
+        : request_(request)
         , callback_(callback)
         {
             
@@ -115,14 +118,7 @@ namespace {
         
         int callback(double dltotal, double dlnow, double ultotal, double ulnow)
         {
-            if (download_)
-            {
-                callback_(request_, dlnow, dltotal);
-            }
-            else
-            {
-                callback_(request_, ulnow, ultotal);
-            }
+            callback_(request_, dlnow, dltotal, ulnow, ultotal);
             return CURLE_OK;
         }
         
@@ -137,6 +133,46 @@ namespace {
             return CURLE_OK;
         }
     };
+    
+    template<typename _DataWriter, typename _HeaderWriter>
+    void initCurlSession(ghost::CurlSession& session, const ghost::HttpRequest& request, char* errorBuffer, _DataWriter& dataWriter, _HeaderWriter& headerWriter)
+    {
+        session.easySetOpt<CURLOPT_ERRORBUFFER>(errorBuffer);
+        session.easySetOpt<CURLOPT_TIMEOUT>(request.transferTimeoutSeconds);
+        session.easySetOpt<CURLOPT_CONNECTTIMEOUT>(request.connectTimeoutSeconds);
+        session.easySetOpt<CURLOPT_SSL_VERIFYPEER>(request.sslVerifyPeer);
+        session.easySetOpt<CURLOPT_SSL_VERIFYHOST>(request.sslVerifyHost);
+        session.easySetOpt<CURLOPT_NOSIGNAL>(request.nosignal);
+        
+        session.easySetOpt<CURLOPT_URL>(request.url);
+        session.easySetOpt<CURLOPT_USERAGENT>(request.userAgent);
+        if (!request.headers.empty())
+        {
+            ghost::CurlStringList headerList;
+            for (auto& header : request.headers)
+            {
+                headerList.append(header);
+            }
+            session.easySetOpt<CURLOPT_HTTPHEADER>(headerList.get());
+        }
+        session.easySetOpt<CURLOPT_COOKIE>(request.cookie);
+        session.easySetOpt<CURLOPT_COOKIEFILE>(request.cookieFileReadFrom);
+        session.easySetOpt<CURLOPT_COOKIEJAR>(request.cookieFileStoreTo);
+        
+        session.easySetOpt<CURLOPT_WRITEFUNCTION>(&FileStreamWriter::writeCallback);
+        session.easySetOpt<CURLOPT_WRITEDATA>(&dataWriter);
+        
+        session.easySetOpt<CURLOPT_HEADERFUNCTION>(&StringStreamWriter::writeCallback);
+        session.easySetOpt<CURLOPT_HEADERDATA>(&headerWriter);
+        
+        if (request.progressCallback)
+        {
+            session.easySetOpt<CURLOPT_NOPROGRESS>(false);
+            ProgressCallback progressCallback(request, request.progressCallback);
+            session.easySetOpt<CURLOPT_PROGRESSFUNCTION>(&ProgressCallback::progressCallback);
+            session.easySetOpt<CURLOPT_PROGRESSDATA>(&progressCallback);
+        }
+    }
     
 }
 
@@ -189,6 +225,55 @@ HttpClient& HttpClient::getThreadLocalInstance()
     return *(HttpClient*)p;
 }
 
+HttpClient::ErrorCode HttpClient::get(const HttpRequest& request, HttpResponse& response)
+{
+    StringStreamWriter dataWriter;
+    StringStreamWriter headerWriter;
+    
+    CurlSession session;
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter);
+    session.easySetOpt<CURLOPT_FOLLOWLOCATION>(true);
+    
+    CURLcode errorCode = CURLE_OK;
+    std::tie(errorCode, response.code) = session.perform();
+    if (!CurlSession::codeOK(errorCode))
+    {
+        return E_PERFORM;
+    }
+    
+    response.header = std::move(headerWriter.getStream().str());
+    response.data = std::move(dataWriter.getStream().str());
+    
+    return E_OK;
+}
+
+
+HttpClient::ErrorCode HttpClient::post(const HttpRequest& request, HttpResponse& response, const char* pData, size_t dataSize)
+{
+    StringStreamWriter dataWriter;
+    StringStreamWriter headerWriter;
+    
+    CurlSession session;
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter);
+    session.easySetOpt<CURLOPT_POST>(true);
+    if (pData && 0 < dataSize)
+    {
+        session.easySetOpt<CURLOPT_POSTFIELDS>(pData);
+        session.easySetOpt<CURLOPT_POSTFIELDSIZE>((long)dataSize);
+    }
+    
+    CURLcode errorCode = CURLE_OK;
+    std::tie(errorCode, response.code) = session.perform();
+    if (!CurlSession::codeOK(errorCode))
+    {
+        return E_PERFORM;
+    }
+    
+    response.header = std::move(headerWriter.getStream().str());
+    response.data = std::move(dataWriter.getStream().str());
+    return E_OK;
+}
+
 HttpClient::ErrorCode HttpClient::download(const HttpRequest& request, HttpResponse& response, const char* fileName)
 {
     assert(fileName);
@@ -198,53 +283,25 @@ HttpClient::ErrorCode HttpClient::download(const HttpRequest& request, HttpRespo
     {
         return E_OPEN_FILE;
     }
+    StringStreamWriter headerWriter;
     
     CurlSession session;
-    
-    session.easySetOpt<CURLOPT_ERRORBUFFER>(&errorBuffer_[0]);
-    session.easySetOpt<CURLOPT_TIMEOUT>(request.transferTimeoutSeconds);
-    session.easySetOpt<CURLOPT_CONNECTTIMEOUT>(request.connectTimeoutSeconds);
-    session.easySetOpt<CURLOPT_SSL_VERIFYPEER>(request.sslVerifyPeer);
-    session.easySetOpt<CURLOPT_SSL_VERIFYHOST>(request.sslVerifyHost);
-    session.easySetOpt<CURLOPT_NOSIGNAL>(request.nosignal);
-    
-    session.easySetOpt<CURLOPT_URL>(request.url);
-    session.easySetOpt<CURLOPT_USERAGENT>(request.userAgent);
-    if (!request.headers.empty())
-    {
-        CurlStringList headerList;
-        for (auto& header : request.headers)
-        {
-            headerList.append(header);
-        }
-        session.easySetOpt<CURLOPT_HTTPHEADER>(headerList.get());
-    }
-    session.easySetOpt<CURLOPT_COOKIE>(request.cookie);
-    session.easySetOpt<CURLOPT_COOKIEFILE>(request.cookieFileReadFrom);
-    session.easySetOpt<CURLOPT_COOKIEJAR>(request.cookieFileStoreTo);
-    
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter);
     session.easySetOpt<CURLOPT_FOLLOWLOCATION>(true);
-    
-    session.easySetOpt<CURLOPT_WRITEFUNCTION>(&FileStreamWriter::writeCallback);
-    session.easySetOpt<CURLOPT_WRITEDATA>(&dataWriter);
-    
-    StringStreamWriter headerWriter;
-    session.easySetOpt<CURLOPT_HEADERFUNCTION>(&StringStreamWriter::writeCallback);
-    session.easySetOpt<CURLOPT_HEADERDATA>(&headerWriter);
-    
-    if (request.progressCallback)
-    {
-        session.easySetOpt<CURLOPT_NOPROGRESS>(false);
-        ProgressCallback progressCallback(true, request, request.progressCallback);
-        session.easySetOpt<CURLOPT_PROGRESSFUNCTION>(&ProgressCallback::progressCallback);
-        session.easySetOpt<CURLOPT_PROGRESSDATA>(&progressCallback);
-    }
     
     CURLcode errorCode = CURLE_OK;
     std::tie(errorCode, response.code) = session.perform();
     if (!CurlSession::codeOK(errorCode))
     {
         return E_PERFORM;
+    }
+    
+    response.header = std::move(headerWriter.getStream().str());
+    response.data = fileName;
+    
+    if (!dataWriter.valid())
+    {
+        return E_WRITE_FILE;
     }
     
     return E_OK;
