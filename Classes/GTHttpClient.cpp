@@ -8,7 +8,12 @@
 
 #include "GTHttpClient.h"
 #include "GTCurlSession.h"
+#include "GTHttpRequest.h"
+#include "GTHttpResponse.h"
+#include <pthread.h>
 #include <mutex>
+#include <fstream>
+#include <sstream>
 
 namespace {
     
@@ -46,11 +51,99 @@ namespace {
     };
     static HttpClientThreadLocalKeyManager s_httpClientThreadLocalKeyManager;
     
+    template<typename _OStream>
+    class StreamWriter{
+    public:
+        typedef _OStream OStreamType;
+        
+    private:
+        OStreamType ostream_;
+        
+    public:
+        template<typename... _Args>
+        StreamWriter(_Args... args)
+        : ostream_(args...)
+        {
+            
+        }
+        ~StreamWriter()
+        {
+            ostream_.close();
+        }
+        
+        StreamWriter(const StreamWriter&) = delete;
+        StreamWriter& operator =(const StreamWriter&) = delete;
+        
+    public:
+        bool valid() const
+        {
+            return ostream_;
+        }
+        
+        bool writeData(const char* pData, size_t size)
+        {
+            return ostream_.write(pData, size);
+        }
+        
+    public:
+        static size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+        {
+            StreamWriter* pThis = (StreamWriter*)userdata;
+            if (pThis)
+            {
+                pThis->writeData(ptr, size*nmemb);
+            }
+        }
+    };
+    
+    typedef StreamWriter<std::ofstream> FileStreamWriter;
+    typedef StreamWriter<std::stringstream> StringStreamWriter;
+ 
+    class ProgressCallback{
+        bool download_;
+        const ghost::HttpRequest& request_;
+        const ghost::HttpRequest::ProgressCallbackFunction& callback_;
+        
+    public:
+        ProgressCallback(bool download, const ghost::HttpRequest& request, const ghost::HttpRequest::ProgressCallbackFunction& callback)
+        : download_(download)
+        , request_(request)
+        , callback_(callback)
+        {
+            
+        }
+        
+        int callback(double dltotal, double dlnow, double ultotal, double ulnow)
+        {
+            if (download_)
+            {
+                callback_(request_, dlnow, dltotal);
+            }
+            else
+            {
+                callback_(request_, ulnow, ultotal);
+            }
+            return CURLE_OK;
+        }
+        
+    public:
+        static int progressCallback(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
+        {
+            ProgressCallback* pThis = (ProgressCallback*)clientp;
+            if (pThis)
+            {
+                return pThis->callback(dltotal, dlnow, ultotal, ulnow);
+            }
+            return CURLE_OK;
+        }
+    };
+    
 }
 
 GHOST_NAMESPACE_BEGIN
 
 HttpClient::HttpClient()
+: errorBuffer_(CURL_ERROR_SIZE)
 {
     std::lock_guard<std::mutex> lock(s_mutexCurlGlobal);
     ++s_clientCount;
@@ -94,6 +187,67 @@ HttpClient& HttpClient::getThreadLocalInstance()
         pthread_setspecific(s_httpClientThreadLocalKeyManager.getKey(), p);
     }
     return *(HttpClient*)p;
+}
+
+HttpClient::ErrorCode HttpClient::download(const HttpRequest& request, HttpResponse& response, const char* fileName)
+{
+    assert(fileName);
+
+    FileStreamWriter dataWriter(fileName, std::ios::out|std::ios::binary|std::ios::trunc);
+    if (!dataWriter.valid())
+    {
+        return E_OPEN_FILE;
+    }
+    
+    CurlSession session;
+    
+    session.easySetOpt<CURLOPT_ERRORBUFFER>(&errorBuffer_[0]);
+    session.easySetOpt<CURLOPT_TIMEOUT>(request.transferTimeoutSeconds);
+    session.easySetOpt<CURLOPT_CONNECTTIMEOUT>(request.connectTimeoutSeconds);
+    session.easySetOpt<CURLOPT_SSL_VERIFYPEER>(request.sslVerifyPeer);
+    session.easySetOpt<CURLOPT_SSL_VERIFYHOST>(request.sslVerifyHost);
+    session.easySetOpt<CURLOPT_NOSIGNAL>(request.nosignal);
+    
+    session.easySetOpt<CURLOPT_URL>(request.url);
+    session.easySetOpt<CURLOPT_USERAGENT>(request.userAgent);
+    if (!request.headers.empty())
+    {
+        CurlStringList headerList;
+        for (auto& header : request.headers)
+        {
+            headerList.append(header);
+        }
+        session.easySetOpt<CURLOPT_HTTPHEADER>(headerList.get());
+    }
+    session.easySetOpt<CURLOPT_COOKIE>(request.cookie);
+    session.easySetOpt<CURLOPT_COOKIEFILE>(request.cookieFileReadFrom);
+    session.easySetOpt<CURLOPT_COOKIEJAR>(request.cookieFileStoreTo);
+    
+    session.easySetOpt<CURLOPT_FOLLOWLOCATION>(true);
+    
+    session.easySetOpt<CURLOPT_WRITEFUNCTION>(&FileStreamWriter::writeCallback);
+    session.easySetOpt<CURLOPT_WRITEDATA>(&dataWriter);
+    
+    StringStreamWriter headerWriter;
+    session.easySetOpt<CURLOPT_HEADERFUNCTION>(&StringStreamWriter::writeCallback);
+    session.easySetOpt<CURLOPT_HEADERDATA>(&headerWriter);
+    
+    if (request.progressCallback)
+    {
+        session.easySetOpt<CURLOPT_NOPROGRESS>(false);
+        ProgressCallback progressCallback(true, request, request.progressCallback);
+        session.easySetOpt<CURLOPT_PROGRESSFUNCTION>(&ProgressCallback::progressCallback);
+        session.easySetOpt<CURLOPT_PROGRESSDATA>(&progressCallback);
+    }
+    
+    CURLcode errorCode = CURLE_OK;
+    std::tie(errorCode, response.code) = session.perform();
+    if (!CurlSession::codeOK(errorCode))
+    {
+        return E_PERFORM;
+    }
+    
+    return E_OK;
 }
 
 GHOST_NAMESPACE_END

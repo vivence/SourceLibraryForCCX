@@ -68,6 +68,8 @@
 		970757951976632F006A4228 /* GTHttpRequest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 970757921976632F006A4228 /* GTHttpRequest.cpp */; };
 		97075798197674D1006A4228 /* GTHttpClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97075796197674D0006A4228 /* GTHttpClient.cpp */; };
 		97075799197674D1006A4228 /* GTHttpClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97075796197674D0006A4228 /* GTHttpClient.cpp */; };
+		9707579E19776A45006A4228 /* GTHttpResponse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9707579C19776A45006A4228 /* GTHttpResponse.cpp */; };
+		9707579F19776A45006A4228 /* GTHttpResponse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9707579C19776A45006A4228 /* GTHttpResponse.cpp */; };
 		BF171245129291EC00B8313A /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF170DB012928DE900B8313A /* OpenGLES.framework */; };
 		BF1712471292920000B8313A /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BF170DB412928DE900B8313A /* libz.dylib */; };
 		BF1C47F01293687400B63C5D /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF1C47EA1293683800B63C5D /* QuartzCore.framework */; };
@@ -278,6 +280,8 @@
 		970757931976632F006A4228 /* GTHttpRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTHttpRequest.h; path = ../Classes/GTHttpRequest.h; sourceTree = "<group>"; };
 		97075796197674D0006A4228 /* GTHttpClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GTHttpClient.cpp; path = ../Classes/GTHttpClient.cpp; sourceTree = "<group>"; };
 		97075797197674D0006A4228 /* GTHttpClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTHttpClient.h; path = ../Classes/GTHttpClient.h; sourceTree = "<group>"; };
+		9707579C19776A45006A4228 /* GTHttpResponse.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GTHttpResponse.cpp; path = ../Classes/GTHttpResponse.cpp; sourceTree = "<group>"; };
+		9707579D19776A45006A4228 /* GTHttpResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTHttpResponse.h; path = ../Classes/GTHttpResponse.h; sourceTree = "<group>"; };
 		97FF89481963F569009EBEFB /* GTGroupCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTGroupCache.h; path = ../Classes/GTGroupCache.h; sourceTree = "<group>"; };
 		97FF89491963F569009EBEFB /* GTLoadInfoStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTLoadInfoStore.h; path = ../Classes/GTLoadInfoStore.h; sourceTree = "<group>"; };
 		97FF894A1963F569009EBEFB /* GTMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTMacros.h; path = ../Classes/GTMacros.h; sourceTree = "<group>"; };
@@ -509,6 +513,8 @@
 				9707578E197620F6006A4228 /* GTCurlSession.h */,
 				970757921976632F006A4228 /* GTHttpRequest.cpp */,
 				970757931976632F006A4228 /* GTHttpRequest.h */,
+				9707579C19776A45006A4228 /* GTHttpResponse.cpp */,
+				9707579D19776A45006A4228 /* GTHttpResponse.h */,
 				97075796197674D0006A4228 /* GTHttpClient.cpp */,
 				97075797197674D0006A4228 /* GTHttpClient.h */,
 			);
@@ -745,6 +751,7 @@
 			files = (
 				503AE10017EB989F00D1A890 /* AppController.mm in Sources */,
 				503AE10217EB989F00D1A890 /* RootViewController.mm in Sources */,
+				9707579E19776A45006A4228 /* GTHttpResponse.cpp in Sources */,
 				970757941976632F006A4228 /* GTHttpRequest.cpp in Sources */,
 				97075798197674D1006A4228 /* GTHttpClient.cpp in Sources */,
 				1AFAF8B716D35DE700DB1158 /* AppDelegate.cpp in Sources */,
@@ -763,6 +770,7 @@
 				5087E75817EB910900C73F5D /* HelloWorldScene.cpp in Sources */,
 				970757951976632F006A4228 /* GTHttpRequest.cpp in Sources */,
 				503AE10517EB98FF00D1A890 /* main.cpp in Sources */,
+				9707579F19776A45006A4228 /* GTHttpResponse.cpp in Sources */,
 				97075799197674D1006A4228 /* GTHttpClient.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

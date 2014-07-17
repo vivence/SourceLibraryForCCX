@@ -11,14 +11,49 @@
 
 #include "GTMacros.h"
 #include "curl/curl.h"
+#include <string>
 #include <cassert>
 #include <stdexcept>
+#include <string>
 
 GHOST_NAMESPACE_BEGIN
 
 typedef int (*ProgressCallbackFunc)(void* /*clientp*/, double/* dltotal*/, double/* dlnow*/, double/* ultotal*/, double/* ulnow*/);
 typedef size_t (*WriteCallbackFunc)(char*/* ptr*/, size_t/* size*/, size_t/* nmemb*/, void*/* userdata*/);
 typedef size_t (*HeaderCallbackFunc)(char*/* buffer*/, size_t/* size*/, size_t/* nitems*/, void*/* userdata*/);
+
+class CurlStringList{
+    struct curl_slist* pList_ = nullptr;
+    
+public:
+    CurlStringList() = default;
+    ~CurlStringList()
+    {
+        if (pList_)
+        {
+            curl_slist_free_all(pList_);
+        }
+    }
+    
+    CurlStringList(const CurlStringList&) = delete;
+    CurlStringList& operator =(const CurlStringList&) = delete;
+    
+public:
+    struct curl_slist* get()
+    {
+        reurn pList_;
+    }
+    
+    void append(const char* str)
+    {
+        pList_ = curl_slist_append(pList_, str);
+    }
+    
+    void append(const std::string& str)
+    {
+        append(str.c_str());
+    }
+};
 
 template<CURLoption OPTION>
 struct CurlOptionHelper{
@@ -242,6 +277,11 @@ struct CurlOptionHelper<CURLOPT_COOKIE>{
     {
         return easySetOpt(curl, (char*)data);
     }
+    
+    static CURLcode easySetOpt(CURL* curl, const std::string& data)
+    {
+        return easySetOpt(curl, data.c_str());
+    }
 };
 
 template<>
@@ -260,6 +300,11 @@ struct CurlOptionHelper<CURLOPT_COOKIEFILE>{
     static CURLcode easySetOpt(CURL* curl, const char* data)
     {
         return easySetOpt(curl, (char*)data);
+    }
+    
+    static CURLcode easySetOpt(CURL* curl, const std::string& data)
+    {
+        return easySetOpt(curl, data.c_str());
     }
 };
 
@@ -280,6 +325,11 @@ struct CurlOptionHelper<CURLOPT_COOKIEJAR>{
     {
         return easySetOpt(curl, (char*)data);
     }
+    
+    static CURLcode easySetOpt(CURL* curl, const std::string& data)
+    {
+        return easySetOpt(curl, data.c_str());
+    }
 };
 
 template<>
@@ -299,6 +349,11 @@ struct CurlOptionHelper<CURLOPT_URL>{
     {
         return easySetOpt(curl, (char*)data);
     }
+    
+    static CURLcode easySetOpt(CURL* curl, const std::string& data)
+    {
+        return easySetOpt(curl, data.c_str());
+    }
 };
 
 template<>
@@ -317,6 +372,11 @@ struct CurlOptionHelper<CURLOPT_USERAGENT>{
     static CURLcode easySetOpt(CURL* curl, const char* data)
     {
         return easySetOpt(curl, (char*)data);
+    }
+    
+    static CURLcode easySetOpt(CURL* curl, const std::string& data)
+    {
+        return easySetOpt(curl, data.c_str());
     }
 };
 
@@ -445,6 +505,11 @@ struct CurlOptionHelper<CURLOPT_POSTFIELDS>{
     {
         return easySetOpt(curl, (char*)data);
     }
+    
+    static CURLcode easySetOpt(CURL* curl, const std::string& data)
+    {
+        return easySetOpt(curl, data.c_str());
+    }
 };
 
 template<>
@@ -482,6 +547,11 @@ struct CurlOptionHelper<CURLOPT_CUSTOMREQUEST>{
     static CURLcode easySetOpt(CURL* curl, const char* data)
     {
         return easySetOpt(curl, (char*)data);
+    }
+    
+    static CURLcode easySetOpt(CURL* curl, const std::string& data)
+    {
+        return easySetOpt(curl, data.c_str());
     }
 };
 

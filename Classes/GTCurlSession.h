@@ -19,9 +19,6 @@ GHOST_NAMESPACE_BEGIN
 
 class CurlSession{
     CURL* curl_;
-    char errorBuffer_[CURL_ERROR_SIZE] = {0};
-    long transferTimeoutSeconds_ = 0;
-    long connectTimeoutSeconds_ = 0;
     
 public:
     // instantiate Global before creating thread and CurlSession
@@ -56,9 +53,6 @@ public:
      */
     typedef std::tuple<CURLcode, long> PerformResult;
     PerformResult perform();
-    
-private:
-    void configure();
     
 };
 

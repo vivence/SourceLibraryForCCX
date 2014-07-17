@@ -36,7 +36,6 @@ CurlSession::CurlSession() throw(std::exception)
     {
         throw std::runtime_error("CURL init failed: curl_easy_init() returned NULL");
     }
-    configure();
 }
 
 CurlSession::~CurlSession()
@@ -53,16 +52,6 @@ CurlSession::PerformResult CurlSession::perform()
         code = curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &responseCode);
     }
     return std::make_tuple(code, responseCode);
-}
-
-void CurlSession::configure()
-{
-    easySetOpt<CURLOPT_ERRORBUFFER>(errorBuffer_);
-    easySetOpt<CURLOPT_TIMEOUT>(transferTimeoutSeconds_);
-    easySetOpt<CURLOPT_CONNECTTIMEOUT>(connectTimeoutSeconds_);
-    easySetOpt<CURLOPT_SSL_VERIFYPEER>(0L);
-    easySetOpt<CURLOPT_SSL_VERIFYHOST>(0L);
-    easySetOpt<CURLOPT_NOSIGNAL>(1L);
 }
 
 GHOST_NAMESPACE_END

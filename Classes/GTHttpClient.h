@@ -10,11 +10,23 @@
 #define __SourceLibraryForCCX__GTHttpClient__
 
 #include "GTMacros.h"
-#include <pthread.h>
+#include <vector>
 
 GHOST_NAMESPACE_BEGIN
 
+class HttpRequest;
+class HttpResponse;
+
 class HttpClient{
+public:
+    enum ErrorCode{
+        E_OK,
+        E_OPEN_FILE,
+        E_PERFORM
+    };
+    
+private:
+    std::vector<char> errorBuffer_;
     
 private:
     HttpClient();
@@ -29,6 +41,7 @@ public:
     static HttpClient& getThreadLocalInstance();
     
 public:
+    ErrorCode download(const HttpRequest& request, HttpResponse& response, const char* fileName);
     
 };
 

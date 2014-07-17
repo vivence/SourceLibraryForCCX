@@ -12,12 +12,14 @@
 #include "GTMacros.h"
 #include <string>
 #include <list>
+#include <functional>
+#include <memory>
 
 GHOST_NAMESPACE_BEGIN
 
 struct HttpRequest{
     typedef std::list<std::string> StringList;
-    
+    typedef std::function<void(const HttpRequest& request, double now, double total)> ProgressCallbackFunction;
     
     
     long transferTimeoutSeconds = 0;
@@ -33,7 +35,7 @@ struct HttpRequest{
     std::string cookieFileReadFrom;
     std::string cookieFileStoreTo;
     
-    bool followLocation = false;
+    ProgressCallbackFunction progressCallback;
 };
 
 GHOST_NAMESPACE_END
