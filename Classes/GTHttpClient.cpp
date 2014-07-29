@@ -82,24 +82,33 @@ namespace {
         
         bool valid() const
         {
-            return ostream_;
+            return !ostream_.fail();
         }
         
         bool writeData(const char* pData, size_t size)
         {
-            return ostream_.write(pData, size);
+            ostream_.write(pData, size);
+            return valid();
         }
         
     public:
         static size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
         {
+            auto sizes = size*nmemb;
             StreamWriter* pThis = (StreamWriter*)userdata;
             if (pThis)
             {
-                pThis->writeData(ptr, size*nmemb);
+                pThis->writeData(ptr, sizes);
             }
+            return sizes;
         }
     };
+    
+    template<>
+    StreamWriter<std::stringstream>::~StreamWriter()
+    {
+        
+    }
     
     typedef StreamWriter<std::ofstream> FileStreamWriter;
     typedef StreamWriter<std::stringstream> StringStreamWriter;

@@ -41,7 +41,7 @@ public:
 public:
     struct curl_slist* get()
     {
-        reurn pList_;
+        return pList_;
     }
     
     void append(const char* str)
