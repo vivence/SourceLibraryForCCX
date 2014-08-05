@@ -59,6 +59,9 @@ public:
     
 };
 
+template<typename _QueueTraits = ProducerQueueTraits<std::function<void()>, std::queue<std::function<void()> > > >
+using ProducerByTraits = Producer<typename _QueueTraits::ProductType, typename _QueueTraits::QueueType, _QueueTraits>;
+
 template<typename _Product, typename _Queue, typename _QueueTraits>
 void Producer<_Product, _Queue, _QueueTraits>::produce(const ProductType& product)
 {

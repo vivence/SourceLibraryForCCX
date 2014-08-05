@@ -74,7 +74,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     
 //    typedef ghost::LoadInfoTraitsUseMap<std::string, std::string, std::map<std::string, std::string>> LoadInfoTraits;
     
-    ghost::LoadInfoStore<LoadInfoTraits::GroupIDType, LoadInfoTraits::TypeIDType, LoadInfoTraits> testLoadInfoStore(str.c_str(), str.length());
+    ghost::LoadInfoStoreByTraits<LoadInfoTraits> testLoadInfoStore(str.c_str(), str.length());
     auto pInfos = testLoadInfoStore.getInfos("Test", "Texture");
     if (pInfos)
     {
@@ -88,7 +88,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
         }
     }
 //    typedef ghost::GroupCacheTraitsUseArray<cocos2d::Ref, 10, 10> GroupCacheTraits;
-//    ghost::GroupCache<GroupCacheTraits::GroupIDType, GroupCacheTraits::TypeIDType, GroupCacheTraits::ObjectType, GroupCacheTraits> testGroupCache;
+//    ghost::GroupCacheByTraits<GroupCacheTraits> testGroupCache;
 //    testGroupCache.retainObject(0, 0, nullptr);
 //    testGroupCache.releaseGroup(0, 0);
 //    testGroupCache.releaseGroup(0);
@@ -98,9 +98,9 @@ bool AppDelegate::applicationDidFinishLaunching() {
     typedef ghost::AsyncTask::ProducerQueueTraits<> TestProducerQueueTraits;
     typedef ghost::AsyncTask::ConsumerQueueTraits<> TestConsumerQueueTraits;
     
-    auto pProducer = new ghost::AsyncProducer<ghost::Producer<TestProducerQueueTraits::ProductType, TestProducerQueueTraits::QueueType, TestProducerQueueTraits>>();
+    auto pProducer = new ghost::AsyncProducer<ghost::ProducerByTraits<TestProducerQueueTraits>>();
     
-    auto pConsumer = new ghost::AsyncConsumer<ghost::Consumer<TestConsumerQueueTraits::ProductType, TestConsumerQueueTraits::QueueType, TestConsumerQueueTraits>>(pProducer->getQueue(), pProducer->getQueueDestroyed(), pProducer->getQueueMutex(), pProducer->getQueueNotEmpty(), std::chrono::seconds(-1));
+    auto pConsumer = new ghost::AsyncConsumer<ghost::ConsumerByTraits<TestConsumerQueueTraits>>(pProducer->getQueue(), pProducer->getQueueDestroyed(), pProducer->getQueueMutex(), pProducer->getQueueNotEmpty(), std::chrono::seconds(-1));
     director->getScheduler()->schedule([this, pProducer, pConsumer](float delta){
         Director::getInstance()->getScheduler()->unschedule("produce", this);
         

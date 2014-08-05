@@ -185,6 +185,9 @@ private:
     
 };
 
+template<typename _Traits = LoadInfoTraitsUseMap<std::string, std::string, std::map<std::string, std::string> > >
+using LoadInfoStoreByTraits = LoadInfoStore<typename _Traits::GroupIDType, typename _Traits::TypeIDType, _Traits>;
+
 //----------LoadInfoTraitsUseMap implement--------
 
 template<typename _GroupID, typename _TypeID, typename _Info>

@@ -136,6 +136,9 @@ public:
     
 };
 
+template <typename _Traits = GroupCacheTraitsUseMap<std::string, std::string, cocos2d::Ref> >
+using GroupCacheByTraits = GroupCache<typename _Traits::GroupIDType, typename _Traits::TypeIDType, typename _Traits::ObjectType, _Traits>;
+
 
 //----------GroupCacheTraitsUseMap implement--------
 

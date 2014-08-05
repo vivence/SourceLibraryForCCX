@@ -64,6 +64,9 @@ public:
     
 };
 
+template<typename _QueueTraits = FunctionConsumerQueueTraits<std::function<void()>, std::queue<std::function<void()> > > >
+using ConsumerByTraits = Consumer<typename _QueueTraits::ProductType, typename _QueueTraits::QueueType, _QueueTraits>;
+
 template<typename _Product, typename _Queue, typename _QueueTraits>
 int Consumer<_Product, _Queue, _QueueTraits>::consume(int count/* = 1*/)
 {
