@@ -144,7 +144,7 @@ namespace {
     };
     
     template<typename _DataWriter, typename _HeaderWriter>
-    void initCurlSession(ghost::CurlSession& session, const ghost::HttpRequest& request, char* errorBuffer, _DataWriter& dataWriter, _HeaderWriter& headerWriter)
+    void initCurlSession(ghost::CurlSession& session, const ghost::HttpRequest& request, char* errorBuffer, _DataWriter& dataWriter, _HeaderWriter& headerWriter, ProgressCallback* pProgressCallback)
     {
         session.easySetOpt<CURLOPT_ERRORBUFFER>(errorBuffer);
         session.easySetOpt<CURLOPT_TIMEOUT>(request.transferTimeoutSeconds);
@@ -174,12 +174,11 @@ namespace {
         session.easySetOpt<CURLOPT_HEADERFUNCTION>(&StringStreamWriter::writeCallback);
         session.easySetOpt<CURLOPT_HEADERDATA>(&headerWriter);
         
-        if (request.progressCallback)
+        if (request.progressCallback && pProgressCallback)
         {
             session.easySetOpt<CURLOPT_NOPROGRESS>(false);
-            ProgressCallback progressCallback(request, request.progressCallback);
             session.easySetOpt<CURLOPT_PROGRESSFUNCTION>(&ProgressCallback::progressCallback);
-            session.easySetOpt<CURLOPT_PROGRESSDATA>(&progressCallback);
+            session.easySetOpt<CURLOPT_PROGRESSDATA>(pProgressCallback);
         }
     }
     
@@ -238,9 +237,14 @@ HttpClient::ErrorCode HttpClient::get(const HttpRequest& request, HttpResponse& 
 {
     StringStreamWriter dataWriter;
     StringStreamWriter headerWriter;
+    std::shared_ptr<ProgressCallback> pProgressCallback;
+    if (request.progressCallback)
+    {
+        pProgressCallback.reset(new ProgressCallback(request, request.progressCallback));
+    }
     
     CurlSession session;
-    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter);
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get());
     session.easySetOpt<CURLOPT_FOLLOWLOCATION>(true);
     
     CURLcode errorCode = CURLE_OK;
@@ -261,9 +265,14 @@ HttpClient::ErrorCode HttpClient::post(const HttpRequest& request, HttpResponse&
 {
     StringStreamWriter dataWriter;
     StringStreamWriter headerWriter;
+    std::shared_ptr<ProgressCallback> pProgressCallback;
+    if (request.progressCallback)
+    {
+        pProgressCallback.reset(new ProgressCallback(request, request.progressCallback));
+    }
     
     CurlSession session;
-    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter);
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get());
     session.easySetOpt<CURLOPT_POST>(true);
     if (pData && 0 < dataSize)
     {
@@ -293,9 +302,14 @@ HttpClient::ErrorCode HttpClient::download(const HttpRequest& request, HttpRespo
         return E_OPEN_FILE;
     }
     StringStreamWriter headerWriter;
+    std::shared_ptr<ProgressCallback> pProgressCallback;
+    if (request.progressCallback)
+    {
+        pProgressCallback.reset(new ProgressCallback(request, request.progressCallback));
+    }
     
     CurlSession session;
-    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter);
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get());
     session.easySetOpt<CURLOPT_FOLLOWLOCATION>(true);
     
     CURLcode errorCode = CURLE_OK;
