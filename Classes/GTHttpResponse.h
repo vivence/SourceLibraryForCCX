@@ -16,7 +16,7 @@ GHOST_NAMESPACE_BEGIN
 
 struct HttpResponse{
     
-    long code;
+    long code = -1;
     std::string errorString;
     
     std::string header;

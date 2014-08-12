@@ -13,6 +13,7 @@
 #include <functional>
 #include <queue>
 #include <memory>
+#include <atomic>
 
 GHOST_NAMESPACE_BEGIN
 
@@ -33,7 +34,7 @@ public:
             size_t productCount = queue.size();
             for (size_t i = 0; i < productCount; ++i)
             {
-                queue.front()->canceledInCocosThread();
+                queue.front()->cancelInCocosThread();
                 queue.pop();
             }
         }
@@ -61,30 +62,41 @@ public:
         
         static void consumeProduct(ProductType& product)
         {
-            product->consumedInBackgroundThread();
+            product->consumeInBackgroundThread();
         }
     };
     
 private:
-    std::function<void()> consumed_;
-    std::function<void()> canceled_;
+    std::function<void()> doConsume_;
+    std::function<void()> doCancel_;
+    std::atomic_flag invalidate_ = ATOMIC_FLAG_INIT;
     
 public:
-    AsyncTask(const std::function<void()>& consumedInBackgroundThread, const std::function<void()>& canceledInCocosThread)
-    : consumed_(consumedInBackgroundThread)
-    , canceled_(canceledInCocosThread)
+    AsyncTask(const std::function<void()>& doConsumeInBackgroundThread, const std::function<void()>& doCancelInCocosThread)
+    : doConsume_(doConsumeInBackgroundThread)
+    , doCancel_(doCancelInCocosThread)
     {
         
     }
     
 public:
-    void consumedInBackgroundThread() const
+    void consumeInBackgroundThread()
     {
-        consumed_();
+        if (!invalidate_.test_and_set())
+        {
+            doConsume_();
+        }
     }
-    void canceledInCocosThread() const
+    void cancelInCocosThread()
     {
-        canceled_();
+        if (!invalidate_.test_and_set())
+        {
+            doCancel_();
+        }
+    }
+    void reset()
+    {
+        invalidate_.clear();
     }
 };
 
