@@ -14,11 +14,13 @@
 #include "GTCurlOptionHelper.h"
 #include <exception>
 #include <tuple>
+#include <memory>
 
 GHOST_NAMESPACE_BEGIN
 
 class CurlSession{
     CURL* curl_;
+    std::shared_ptr<CurlStringList> pHeaderList_;
     
 public:
     // instantiate Global before creating thread and CurlSession
@@ -34,6 +36,20 @@ public:
     
     CurlSession(const CurlSession&) = delete;
     CurlSession& operator =(const CurlSession&) = delete;
+    
+public:
+    CurlStringList& getHeaderList()
+    {
+        if (!pHeaderList_)
+        {
+            pHeaderList_.reset(new CurlStringList());
+        }
+        return *pHeaderList_;
+    }
+    void resetHeaderList()
+    {
+        pHeaderList_.reset(new CurlStringList());
+    }
     
 public:
     static bool codeOK(CURLcode code)

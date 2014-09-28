@@ -157,12 +157,11 @@ namespace {
         session.easySetOpt<CURLOPT_USERAGENT>(request.userAgent);
         if (!request.headers.empty())
         {
-            ghost::CurlStringList headerList;
             for (auto& header : request.headers)
             {
-                headerList.append(header);
+                session.getHeaderList().append(header);
             }
-            session.easySetOpt<CURLOPT_HTTPHEADER>(headerList.get());
+            session.easySetOpt<CURLOPT_HTTPHEADER>(session.getHeaderList().get());
         }
         session.easySetOpt<CURLOPT_COOKIE>(request.cookie);
         session.easySetOpt<CURLOPT_COOKIEFILE>(request.cookieFileReadFrom);
