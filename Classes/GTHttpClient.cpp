@@ -144,7 +144,7 @@ namespace {
     };
     
     template<typename _DataWriter, typename _HeaderWriter>
-    void initCurlSession(ghost::CurlSession& session, const ghost::HttpRequest& request, char* errorBuffer, _DataWriter& dataWriter, _HeaderWriter& headerWriter, ProgressCallback* pProgressCallback)
+    void initCurlSession(ghost::CurlSession& session, const ghost::HttpRequest& request, char* errorBuffer, _DataWriter& dataWriter, _HeaderWriter& headerWriter, ProgressCallback* pProgressCallback, ghost::CurlStringList& headerList)
     {
         session.easySetOpt<CURLOPT_ERRORBUFFER>(errorBuffer);
         session.easySetOpt<CURLOPT_TIMEOUT>(request.transferTimeoutSeconds);
@@ -159,9 +159,9 @@ namespace {
         {
             for (auto& header : request.headers)
             {
-                session.getHeaderList().append(header);
+                headerList.append(header);
             }
-            session.easySetOpt<CURLOPT_HTTPHEADER>(session.getHeaderList().get());
+            session.easySetOpt<CURLOPT_HTTPHEADER>(headerList.get());
         }
         session.easySetOpt<CURLOPT_COOKIE>(request.cookie);
         session.easySetOpt<CURLOPT_COOKIEFILE>(request.cookieFileReadFrom);
@@ -242,8 +242,10 @@ HttpClient::ErrorCode HttpClient::get(const HttpRequest& request, HttpResponse& 
         pProgressCallback.reset(new ProgressCallback(request, request.progressCallback));
     }
     
+    ghost::CurlStringList headerList;
+    
     CurlSession session;
-    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get());
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get(), headerList);
     session.easySetOpt<CURLOPT_FOLLOWLOCATION>(true);
     
     CURLcode errorCode = CURLE_OK;
@@ -270,12 +272,18 @@ HttpClient::ErrorCode HttpClient::post(const HttpRequest& request, HttpResponse&
         pProgressCallback.reset(new ProgressCallback(request, request.progressCallback));
     }
     
+    ghost::CurlStringList headerList;
+    
     CurlSession session;
-    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get());
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get(), headerList);
     session.easySetOpt<CURLOPT_POST>(true);
     if (pData && 0 < dataSize)
     {
         session.easySetOpt<CURLOPT_POSTFIELDS>(pData);
+        session.easySetOpt<CURLOPT_POSTFIELDSIZE>((long)dataSize);
+    }else
+    {
+        session.easySetOpt<CURLOPT_POSTFIELDS>("");
         session.easySetOpt<CURLOPT_POSTFIELDSIZE>((long)dataSize);
     }
     
@@ -307,8 +315,10 @@ HttpClient::ErrorCode HttpClient::download(const HttpRequest& request, HttpRespo
         pProgressCallback.reset(new ProgressCallback(request, request.progressCallback));
     }
     
+    ghost::CurlStringList headerList;
+    
     CurlSession session;
-    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get());
+    initCurlSession(session, request, &errorBuffer_[0], dataWriter, headerWriter, pProgressCallback.get(), headerList);
     session.easySetOpt<CURLOPT_FOLLOWLOCATION>(true);
     
     CURLcode errorCode = CURLE_OK;
